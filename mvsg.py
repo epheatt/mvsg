@@ -171,7 +171,8 @@ for core_name in core_names:
     dispatch_value(core_name, 'indexHeapUsageBytes', cores_json['status'][core_name]['index']['indexHeapUsageBytes'], timestamp)
     dispatch_value(core_name, 'sizeInBytes', cores_json['status'][core_name]['index']['sizeInBytes'], timestamp)
     dispatch_value(core_name, 'segmentCount', cores_json['status'][core_name]['index']['segmentCount'], timestamp)
+    core_stats(core_name)
 
-if __name__ == '__main__':
-    p = Pool(len(core_names))
-    p.map(core_stats, core_names)
+#if __name__ == '__main__':
+#    p = Pool(len(core_names))
+#    p.map(core_stats, core_names)
