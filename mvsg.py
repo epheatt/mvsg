@@ -8,10 +8,10 @@ if len(sys.argv) != 7:
     sys.stderr.write('Not enough (or too many) arguments\n')
     sys.exit(1)
 
-hostname = sys.argv[1].partition('.')[0].lower()
-environment = sys.argv[2].lower()
-application = sys.argv[3].lower()
-prefix = '{0}.{1}.{2}'.format(environment, application, hostname)
+hostname = sys.argv[1].partition('.')[0]
+environment = sys.argv[2]
+application = sys.argv[3]
+prefix = '{0}.{1}.{2}'.format(environment, hostname, application)
 
 host = sys.argv[4]
 port = sys.argv[5]
@@ -23,6 +23,12 @@ connection = httplib.HTTPConnection(host, port, timeout = 5)
 
 def tidy_up():
     connection.close()
+
+def escape_core(str):
+    return str.replace('.','_')
+
+def dispatch_value(core_name, field, value):
+    print '{0}.{1}.{2} {3} {4}'.format(prefix, escape_core(core_name), field, value, timestamp)
 
 def request_and_response_or_bail(method, url, message):
     try:
@@ -49,7 +55,7 @@ def get_mbeans(json):
     return mbeans
 
 def system_stats(core_name, omit_jvm_stats):
-    system_content = request_and_response_or_bail('GET', '/{0}/admin/system?wt=json&_={1}'.format(core_name, timestamp_millis), 'Error while retrieving system stats')
+    system_content = request_and_response_or_bail('GET', '/solr/{0}/admin/system?wt=json&_={1}'.format(core_name, timestamp_millis), 'Error while retrieving system stats')
     system_json = json.loads(system_content)
     if not omit_jvm_stats:
         print '{0}.{1} {2} {3}'.format(prefix, 'jvm.uptimeMillis', system_json['jvm']['jmx']['upTimeMS'], timestamp)
@@ -68,81 +74,89 @@ def system_stats(core_name, omit_jvm_stats):
     print '{0}.{1} {2} {3}'.format(prefix, 'system.totalPhysicalMemorySize', system_json['system']['totalPhysicalMemorySize'], timestamp)
     print '{0}.{1} {2} {3}'.format(prefix, 'system.totalSwapSpaceSize', system_json['system']['totalSwapSpaceSize'], timestamp)
 
-def query_handler_stats(stats, name, core_name):
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, '15minRateReqsPerSecond', stats['15minRateReqsPerSecond'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, '5minRateReqsPerSecond', stats['5minRateReqsPerSecond'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, '75thPcRequestTime', stats['75thPcRequestTime'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, '95thPcRequestTime', stats['95thPcRequestTime'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, '999thPcRequestTime', stats['999thPcRequestTime'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, '99thPcRequestTime', stats['99thPcRequestTime'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'avgRequestsPerSecond', stats['avgRequestsPerSecond'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'avgTimePerRequest', stats['avgTimePerRequest'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'errors', stats['errors'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'handlerStart', stats['handlerStart'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'medianRequestTime', stats['medianRequestTime'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'requests', stats['requests'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'timeouts', stats['timeouts'], timestamp)
-    print '{0}.{1}.queryHandlers.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'totalTime', stats['totalTime'], timestamp)
+def query_handler_stats(stats, core_name, name):
+    dispatch_value(core_name, '{0}.5minRateReqsPerSecond'.format(name), stats['5minRateReqsPerSecond'])
+    dispatch_value(core_name, '{0}.15minRateReqsPerSecond'.format(name), stats['15minRateReqsPerSecond'])
+    dispatch_value(core_name, '{0}.75thPcRequestTime'.format(name), stats['75thPcRequestTime'])
+    dispatch_value(core_name, '{0}.95thPcRequestTime'.format(name), stats['95thPcRequestTime'])
+    dispatch_value(core_name, '{0}.999thPcRequestTime'.format(name), stats['999thPcRequestTime'])
+    dispatch_value(core_name, '{0}.99thPcRequestTime'.format(name), stats['99thPcRequestTime'])
+    dispatch_value(core_name, '{0}.avgRequestsPerSecond'.format(name), stats['avgRequestsPerSecond'])
+    dispatch_value(core_name, '{0}.avgTimePerRequest'.format(name), stats['avgTimePerRequest'])
+    dispatch_value(core_name, '{0}.errors'.format(name), stats['errors'])
+    dispatch_value(core_name, '{0}.handlerStart'.format(name), stats['handlerStart'])
+    dispatch_value(core_name, '{0}.medianRequestTime'.format(name), stats['medianRequestTime'])
+    dispatch_value(core_name, '{0}.requests'.format(name), stats['requests'])
+    dispatch_value(core_name, '{0}.timeouts'.format(name), stats['timeouts'])
+    dispatch_value(core_name, '{0}.totalTime'.format(name), stats['totalTime'])
 
-def update_handler_stats(stats, core_name):
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'adds', stats['adds'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'autoCommits', stats['autocommits'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'commits', stats['commits'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'cumulativeAdds', stats['cumulative_adds'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'cumulativeDeletesById', stats['cumulative_deletesById'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'cumulativeDeletesByQuery', stats['cumulative_deletesByQuery'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'cumulativeErrors', stats['cumulative_errors'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'deletesById', stats['deletesById'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'deletesByQuery', stats['deletesByQuery'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'docsPending', stats['docsPending'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'errors', stats['errors'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'expungeDeletes', stats['expungeDeletes'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'optimizes', stats['optimizes'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'rollbacks', stats['rollbacks'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'softAutoCommits', stats['soft autocommits'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'transactionLogsTotalNumber', stats['transaction_logs_total_number'], timestamp)
-    print '{0}.{1}.updateHandler.{2} {3} {4}'.format(prefix, core_name, 'transactionLogsTotalSize', stats['transaction_logs_total_size'], timestamp)
+def update_handler_stats(stats, core_name, name):
+    dispatch_value(core_name, '{0}.adds'.format(name), stats['adds'])
+    dispatch_value(core_name, '{0}.autoCommits'.format(name), stats['autocommits'])
+    dispatch_value(core_name, '{0}.commits'.format(name), stats['commits'])
+    dispatch_value(core_name, '{0}.cumulativeAdds'.format(name), stats['cumulative_adds'])
+    dispatch_value(core_name, '{0}.cumulativeDeletesById'.format(name), stats['cumulative_deletesById'])
+    dispatch_value(core_name, '{0}.cumulativeDeletesByQuery'.format(name), stats['cumulative_deletesByQuery'])
+    dispatch_value(core_name, '{0}.cumulativeErrors'.format(name), stats['cumulative_errors'])
+    dispatch_value(core_name, '{0}.deletesById'.format(name), stats['deletesById'])
+    dispatch_value(core_name, '{0}.deletesByQuery'.format(name), stats['deletesByQuery'])
+    dispatch_value(core_name, '{0}.docsPending'.format(name), stats['docsPending'])
+    dispatch_value(core_name, '{0}.errors'.format(name), stats['errors'])
+    dispatch_value(core_name, '{0}.expungeDeletes'.format(name), stats['expungeDeletes'])
+    dispatch_value(core_name, '{0}.optimizes'.format(name), stats['optimizes'])
+    dispatch_value(core_name, '{0}.rollbacks'.format(name), stats['rollbacks'])
+    dispatch_value(core_name, '{0}.softAutoCommits'.format(name), stats['soft autocommits'])
+    dispatch_value(core_name, '{0}.transactionLogsTotalNumber'.format(name), stats['transaction_logs_total_number'])
+    dispatch_value(core_name, '{0}.transactionLogsTotalSize'.format(name), stats['transaction_logs_total_size'])
 
 def cache_stats(stats, core_name, name):
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'cumulativeEvictions', stats['cumulative_evictions'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'cumulativeHitRatio', stats['cumulative_hitratio'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'cumulativeHits', stats['cumulative_hits'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'cumulativeInserts', stats['cumulative_inserts'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'cumulativeLookups', stats['cumulative_lookups'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'evictions', stats['evictions'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'hitRatio', stats['hitratio'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'hits', stats['hits'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'inserts', stats['inserts'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'lookups', stats['lookups'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'size', stats['size'], timestamp)
-    print '{0}.{1}.caches.{2}.{3} {4} {5}'.format(prefix, core_name, name, 'warmupTime', stats['warmupTime'], timestamp)
+    dispatch_value(core_name, '{0}.cumulativeEvictions'.format(name), stats['cumulative_evictions'])
+    dispatch_value(core_name, '{0}.cumulativeHitRatio'.format(name), stats['cumulative_hitratio'])
+    dispatch_value(core_name, '{0}.cumulativeHits'.format(name), stats['cumulative_hits'])
+    dispatch_value(core_name, '{0}.cumulativeInserts'.format(name), stats['cumulative_inserts'])
+    dispatch_value(core_name, '{0}.cumulativeLookups'.format(name), stats['cumulative_lookups'])
+    dispatch_value(core_name, '{0}.evictions'.format(name), stats['evictions'])
+    dispatch_value(core_name, '{0}.hitRatio'.format(name), stats['hitratio'])
+    dispatch_value(core_name, '{0}.hits'.format(name), stats['hits'])
+    dispatch_value(core_name, '{0}.inserts'.format(name), stats['inserts'])
+    dispatch_value(core_name, '{0}.lookups'.format(name), stats['lookups'])
+    dispatch_value(core_name, '{0}.size'.format(name), stats['size'])
+    dispatch_value(core_name, '{0}.warmupTime'.format(name), stats['warmupTime'])
 
 def core_stats(core_name):
-    mbeans_content = request_and_response_or_bail('GET', '/{0}/admin/mbeans?stats=true&wt=json&_={1}'.format(core_name, timestamp_millis), 'Error while retrieving core stats')
+    mbeans_content = request_and_response_or_bail('GET', '/solr/{0}/admin/mbeans?stats=true&wt=json&_={1}'.format(core_name, timestamp_millis), 'Error while retrieving core stats')
     mbeans_json = get_mbeans(json.loads(mbeans_content))
     searcher_stats = mbeans_json['CORE']['searcher']['stats']
-    print '{0}.{1}.{2} {3} {4}'.format(prefix, core_name, 'numDocs', searcher_stats['numDocs'], timestamp)
-    print '{0}.{1}.{2} {3} {4}'.format(prefix, core_name, 'maxDoc', searcher_stats['maxDoc'], timestamp)
-    print '{0}.{1}.{2} {3} {4}'.format(prefix, core_name, 'numSegments', searcher_stats['numSegments'], timestamp)
-    print '{0}.{1}.{2} {3} {4}'.format(prefix, core_name, 'deletedDocs', searcher_stats['deletedDocs'], timestamp)
-    print '{0}.{1}.{2} {3} {4}'.format(prefix, core_name, 'indexVersion', searcher_stats['indexVersion'], timestamp)
-    print '{0}.{1}.{2} {3} {4}'.format(prefix, core_name, 'warmupTime', searcher_stats['warmupTime'], timestamp)
+    dispatch_value(core_name, 'numDocs', searcher_stats['numDocs'])
+    dispatch_value(core_name, 'maxDoc', searcher_stats['maxDoc'])
+    #dispatch_value(core_name, 'numSegments', searcher_stats['numSegments'])
+    dispatch_value(core_name, 'deletedDocs', searcher_stats['deletedDocs'])
+    dispatch_value(core_name, 'indexVersion', searcher_stats['indexVersion'])
+    dispatch_value(core_name, 'warmupTime', searcher_stats['warmupTime'])
     core_stats = mbeans_json['CORE']['core']['stats']
-    print '{0}.{1}.{2} {3} {4}'.format(prefix, core_name, 'refCount', core_stats['refCount'], timestamp)
-    query_handler_stats(mbeans_json['QUERYHANDLER']['dismax']['stats'], 'dismax', core_name)
-    query_handler_stats(mbeans_json['QUERYHANDLER']['org.apache.solr.handler.UpdateRequestHandler']['stats'], 'update', core_name)
-    query_handler_stats(mbeans_json['QUERYHANDLER']['standard']['stats'], 'standard', core_name)
-    query_handler_stats(mbeans_json['QUERYHANDLER']['warming']['stats'], 'warming', core_name)
-    update_handler_stats(mbeans_json['UPDATEHANDLER']['updateHandler']['stats'], core_name)
+    dispatch_value(core_name, 'refCount', core_stats['refCount'])
+    #query_handler_stats(mbeans_json['QUERYHANDLER']['org.apache.solr.handler.component.SearchHandler']['stats'], 'search', core_name)
+    #query_handler_stats(mbeans_json['QUERYHANDLER']['org.apache.solr.handler.UpdateRequestHandler']['stats'], 'updateRequest, core_name)
+    query_handler_stats(mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats'], core_name, 'replication')
+    dispatch_value(core_name, 'replication.indexVersion', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['indexVersion'])
+    dispatch_value(core_name, 'replication.generation', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['generation'])
+    query_handler_stats(mbeans_json['QUERYHANDLER']['/select']['stats'], core_name, 'select')
+    query_handler_stats(mbeans_json['QUERYHANDLER']['/update']['stats'], core_name, 'update')
+    #query_handler_stats(mbeans_json['QUERYHANDLER']['dismax']['stats'], core_name, 'dismax')
+    #query_handler_stats(mbeans_json['QUERYHANDLER']['standard']['stats'], core_name, 'standard')
+    #query_handler_stats(mbeans_json['QUERYHANDLER']['warming']['stats'], core_name, 'warming')
+    query_handler_stats(mbeans_json['QUERYHANDLER']['org.apache.solr.handler.UpdateRequestHandler']['stats'], core_name, 'updateRequest')
+    update_handler_stats(mbeans_json['UPDATEHANDLER']['updateHandler']['stats'], core_name, 'updateHandler')
     cache_stats(mbeans_json['CACHE']['documentCache']['stats'], core_name, 'documentCache')
     cache_stats(mbeans_json['CACHE']['fieldValueCache']['stats'], core_name, 'fieldValueCache')
     cache_stats(mbeans_json['CACHE']['filterCache']['stats'], core_name, 'filterCache')
-    cache_stats(mbeans_json['CACHE']['nCache']['stats'], core_name, 'nCache')
+    if mbeans_json['CACHE']['nCache'] is not None:
+        cache_stats(mbeans_json['CACHE']['nCache']['stats'], core_name, 'nCache')
     cache_stats(mbeans_json['CACHE']['queryResultCache']['stats'], core_name, 'queryResultCache')
-    print '{0}.{1}.caches.fieldCache.{2} {3} {4}'.format(prefix, core_name, 'entriesCount', mbeans_json['CACHE']['fieldCache']['stats']['entries_count'], timestamp)
-    print '{0}.{1}.caches.fieldCache.{2} {3} {4}'.format(prefix, core_name, 'insanityCount', mbeans_json['CACHE']['fieldCache']['stats']['insanity_count'], timestamp)
+    dispatch_value(core_name, 'fieldCache.entriesCount', mbeans_json['CACHE']['fieldCache']['stats']['entries_count'])
+    dispatch_value(core_name, 'fieldCache.insanityCount', mbeans_json['CACHE']['fieldCache']['stats']['insanity_count'])
 
-cores_content = request_and_response_or_bail('GET', '/admin/cores?wt=json&indexInfo=true&_={0}'.format(timestamp_millis), 'Error while retrieving cores.')
+cores_content = request_and_response_or_bail('GET', '/solr/admin/cores?wt=json&indexInfo=true&_={0}'.format(timestamp_millis), 'Error while retrieving cores.')
 cores_json = json.loads(cores_content)
 
 core_names = cores_json['status'].keys()
@@ -157,6 +171,9 @@ first_core_name = core_names[0]
 system_stats(first_core_name, omit_jvm_stats)
 
 for core_name in core_names:
+    dispatch_value(core_name, 'indexHeapUsageBytes', cores_json['status'][core_name]['index']['indexHeapUsageBytes'])
+    dispatch_value(core_name, 'sizeInBytes', cores_json['status'][core_name]['index']['sizeInBytes'])
+    dispatch_value(core_name, 'segmentCount', cores_json['status'][core_name]['index']['segmentCount'])
     core_stats(core_name)
 
 tidy_up()
