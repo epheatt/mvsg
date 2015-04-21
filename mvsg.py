@@ -4,7 +4,7 @@ import json
 import sys
 import time
 import urllib2
-from multiprocessing import Pool, Queue
+from multiprocessing import Pool
 
 if len(sys.argv) != 7:
     sys.stderr.write('Not enough (or too many) arguments\n')
