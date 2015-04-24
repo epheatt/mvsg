@@ -149,6 +149,10 @@ def core_stats(core_name):
         dispatch_value(core_name, 'replication.timesFailed', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['timesFailed'], ts, q)
     if 'timesIndexReplicated' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
         dispatch_value(core_name, 'replication.timesIndexReplicated', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['timesIndexReplicated'], ts, q)
+    if 'downloadSpeed' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
+        dispatch_value(core_name, 'replication.downloadSpeed', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['downloadSpeed'], ts, q)
+    if 'bytesDownloaded' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
+        dispatch_value(core_name, 'replication.bytesDownloaded', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['bytesDownloaded'], ts, q)        
     query_handler_stats(mbeans_json['QUERYHANDLER']['/select']['stats'], core_name, 'select', ts, q)
     query_handler_stats(mbeans_json['QUERYHANDLER']['/update']['stats'], core_name, 'update', ts, q)
     update_handler_stats(mbeans_json['UPDATEHANDLER']['updateHandler']['stats'], core_name, 'updateHandler', ts, q)
