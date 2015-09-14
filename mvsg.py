@@ -4,7 +4,7 @@ import json
 import sys
 import time
 import urllib2
-from multiprocessing import Pool
+#from multiprocessing import Pool
 
 if len(sys.argv) != 7:
     sys.stderr.write('Not enough (or too many) arguments\n')
@@ -184,13 +184,13 @@ for core_name in core_names:
     dispatch_value(core_name, 'indexHeapUsageBytes', cores_json['status'][core_name]['index']['indexHeapUsageBytes'], timestamp)
     dispatch_value(core_name, 'sizeInBytes', cores_json['status'][core_name]['index']['sizeInBytes'], timestamp)
     dispatch_value(core_name, 'segmentCount', cores_json['status'][core_name]['index']['segmentCount'], timestamp)
-    #results = core_stats(core_name)
-    #for q in results:
-    #    print q
-
-if __name__ == '__main__':
-    p = Pool(len(core_names))
-    results = p.map(core_stats, core_names)
+    results = core_stats(core_name)
     for q in results:
-        for i in q:
-            print i
+        print q
+
+#if __name__ == '__main__':
+#    p = Pool(len(core_names))
+#    results = p.map(core_stats, core_names)
+#    for q in results:
+#        for i in q:
+#            print i
