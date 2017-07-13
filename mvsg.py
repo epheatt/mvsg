@@ -74,8 +74,8 @@ def system_stats(core_name, omit_jvm_stats):
     print '{0}.{1} {2} {3}'.format(prefix, 'system.totalSwapSpaceSize', system_json['system']['totalSwapSpaceSize'], timestamp)
 
 def query_handler_stats(stats, core_name, name, ts, q=None):
-    dispatch_value(core_name, '{0}.5minRateReqsPerSecond'.format(name), stats['5minRateReqsPerSecond'], ts, q)
-    dispatch_value(core_name, '{0}.15minRateReqsPerSecond'.format(name), stats['15minRateReqsPerSecond'], ts, q)
+    dispatch_value(core_name, '{0}.5minRateRequestsPerSecond'.format(name), stats['5minRateRequestsPerSecond'], ts, q)
+    dispatch_value(core_name, '{0}.15minRateRequestsPerSecond'.format(name), stats['15minRateRequestsPerSecond'], ts, q)
     dispatch_value(core_name, '{0}.75thPcRequestTime'.format(name), stats['75thPcRequestTime'], ts, q)
     dispatch_value(core_name, '{0}.95thPcRequestTime'.format(name), stats['95thPcRequestTime'], ts, q)
     dispatch_value(core_name, '{0}.999thPcRequestTime'.format(name), stats['999thPcRequestTime'], ts, q)
@@ -83,11 +83,12 @@ def query_handler_stats(stats, core_name, name, ts, q=None):
     dispatch_value(core_name, '{0}.avgRequestsPerSecond'.format(name), stats['avgRequestsPerSecond'], ts, q)
     dispatch_value(core_name, '{0}.avgTimePerRequest'.format(name), stats['avgTimePerRequest'], ts, q)
     dispatch_value(core_name, '{0}.errors'.format(name), stats['errors'], ts, q)
+    dispatch_value(core_name, '{0}.serverErrors'.format(name), stats['serverErrors'], ts, q)
+    dispatch_value(core_name, '{0}.clientErrors'.format(name), stats['clientErrors'], ts, q)
     dispatch_value(core_name, '{0}.handlerStart'.format(name), stats['handlerStart'], ts, q)
     dispatch_value(core_name, '{0}.medianRequestTime'.format(name), stats['medianRequestTime'], ts, q)
     dispatch_value(core_name, '{0}.requests'.format(name), stats['requests'], ts, q)
     dispatch_value(core_name, '{0}.timeouts'.format(name), stats['timeouts'], ts, q)
-    dispatch_value(core_name, '{0}.totalTime'.format(name), stats['totalTime'], ts, q)
 
 def update_handler_stats(stats, core_name, name, ts, q=None):
     dispatch_value(core_name, '{0}.adds'.format(name), stats['adds'], ts, q)
@@ -138,33 +139,32 @@ def core_stats(core_name):
     dispatch_value(core_name, 'warmupTime', searcher_stats['warmupTime'], ts, q)
     core_stats = mbeans_json['CORE']['core']['stats']
     dispatch_value(core_name, 'refCount', core_stats['refCount'], ts, q)
-    query_handler_stats(mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats'], core_name, 'replication', ts, q)
-    dispatch_value(core_name, 'replication.indexVersion', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['indexVersion'], ts, q)
-    dispatch_value(core_name, 'replication.generation', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['generation'], ts, q)
-    if 'lastCycleBytesDownloaded' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
-        dispatch_value(core_name, 'replication.lastCycleBytesDownloaded', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['lastCycleBytesDownloaded'], ts, q)
-    if 'previousCycleTimeInSeconds' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
-        dispatch_value(core_name, 'replication.previousCycleTimeInSeconds', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['previousCycleTimeInSeconds'], ts, q)
-    if 'timesFailed' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
-        dispatch_value(core_name, 'replication.timesFailed', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['timesFailed'], ts, q)
-    if 'timesIndexReplicated' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
-        dispatch_value(core_name, 'replication.timesIndexReplicated', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['timesIndexReplicated'], ts, q)
-    if 'downloadSpeed' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
-        dispatch_value(core_name, 'replication.downloadSpeed', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['downloadSpeed'], ts, q)
-    if 'bytesDownloaded' in mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']:
-        dispatch_value(core_name, 'replication.bytesDownloaded', mbeans_json['QUERYHANDLER']['org.apache.solr.handler.ReplicationHandler']['stats']['bytesDownloaded'], ts, q)        
+    query_handler_stats(mbeans_json['REPLICATION']['/replication']['stats'], core_name, 'replication', ts, q)
+    dispatch_value(core_name, 'replication.indexVersion', mbeans_json['REPLICATION']['/replication']['stats']['indexVersion'], ts, q)
+    dispatch_value(core_name, 'replication.generation', mbeans_json['REPLICATION']['/replication']['stats']['generation'], ts, q)
+    if 'lastCycleBytesDownloaded' in mbeans_json['REPLICATION']['/replication']['stats']:
+        dispatch_value(core_name, 'replication.lastCycleBytesDownloaded', mbeans_json['REPLICATION']['/replication']['stats']['lastCycleBytesDownloaded'], ts, q)
+    if 'previousCycleTimeInSeconds' in mbeans_json['REPLICATION']['/replication']['stats']:
+        dispatch_value(core_name, 'replication.previousCycleTimeInSeconds', mbeans_json['REPLICATION']['/replication']['stats']['previousCycleTimeInSeconds'], ts, q)
+    if 'timesFailed' in mbeans_json['REPLICATION']['/replication']['stats']:
+        dispatch_value(core_name, 'replication.timesFailed', mbeans_json['REPLICATION']['/replication']['stats']['timesFailed'], ts, q)
+    if 'timesIndexReplicated' in mbeans_json['REPLICATION']['/replication']['stats']:
+        dispatch_value(core_name, 'replication.timesIndexReplicated', mbeans_json['REPLICATION']['/replication']['stats']['timesIndexReplicated'], ts, q)
+    if 'downloadSpeed' in mbeans_json['REPLICATION']['/replication']['stats']:
+        dispatch_value(core_name, 'replication.downloadSpeed', mbeans_json['REPLICATION']['/replication']['stats']['downloadSpeed'], ts, q)
+    if 'bytesDownloaded' in mbeans_json['REPLICATION']['/replication']['stats']:
+        dispatch_value(core_name, 'replication.bytesDownloaded', mbeans_json['REPLICATION']['/replication']['stats']['bytesDownloaded'], ts, q)        
     query_handler_stats(mbeans_json['QUERYHANDLER']['/select']['stats'], core_name, 'select', ts, q)
-    query_handler_stats(mbeans_json['QUERYHANDLER']['/update']['stats'], core_name, 'update', ts, q)
+    query_handler_stats(mbeans_json['QUERYHANDLER']['/export']['stats'], core_name, 'export', ts, q)
     update_handler_stats(mbeans_json['UPDATEHANDLER']['updateHandler']['stats'], core_name, 'updateHandler', ts, q)
     cache_stats(mbeans_json['CACHE']['documentCache']['stats'], core_name, 'documentCache', ts, q)
     cache_stats(mbeans_json['CACHE']['fieldValueCache']['stats'], core_name, 'fieldValueCache', ts, q)
     cache_stats(mbeans_json['CACHE']['filterCache']['stats'], core_name, 'filterCache', ts, q)
-    if 'nCache' in mbeans_json['CACHE']:
-        cache_stats(mbeans_json['CACHE']['nCache']['stats'], core_name, 'nCache', ts, q)
     cache_stats(mbeans_json['CACHE']['perSegFilter']['stats'], core_name, 'perSegFilter', ts, q)
     cache_stats(mbeans_json['CACHE']['queryResultCache']['stats'], core_name, 'queryResultCache', ts, q)
     dispatch_value(core_name, 'fieldCache.entriesCount', mbeans_json['CACHE']['fieldCache']['stats']['entries_count'], ts, q)
-    dispatch_value(core_name, 'fieldCache.insanityCount', mbeans_json['CACHE']['fieldCache']['stats']['insanity_count'], ts, q)
+    if 'insanity_count' in mbeans_json['CACHE']['fieldCache']['stats']:
+        dispatch_value(core_name, 'fieldCache.insanityCount', mbeans_json['CACHE']['fieldCache']['stats']['insanity_count'], ts, q)
     return q
 
 cores_content = request_and_response_or_bail('GET', '/solr/admin/cores?wt=json&indexInfo=true&_={0}'.format(timestamp_millis), 'Error while retrieving cores.')
